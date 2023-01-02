@@ -1,6 +1,8 @@
 package model;
 
-public class Transaction {
+import java.io.Serializable;
+
+public class Transaction implements Serializable {
     private String accountNumber;
     private double transactionAmount;
     private String transactionType;

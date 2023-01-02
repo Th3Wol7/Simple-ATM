@@ -34,7 +34,7 @@ public class MainScreen extends JFrame implements ActionListener {
         new JFrame("My Awesome ATM");
         this.setLayout(null);
 
-        String transaction[] = {"Deposit", "Withdrawl", "Balance Check"};
+        String[] transaction = {"Deposit", "Withdrawl", "Balance Check"};
         mainPanel = new JPanel();
         mainPanel.setSize(600, 500);
         mainPanel.setLayout(null);
@@ -51,7 +51,7 @@ public class MainScreen extends JFrame implements ActionListener {
         transAmountField.setBounds(200, 80, 150, 30);
 
         displayArea = new JTextArea();
-        displayArea.setBounds(450, 40, 150, 150);
+        displayArea.setBounds(450, 40, 200, 150);
 
         transTypeLabel = new JLabel("Transaction Type");
         transTypeLabel.setBounds(20, 130, 150, 30);
@@ -130,10 +130,15 @@ public class MainScreen extends JFrame implements ActionListener {
                 double transactionAmount = Double.parseDouble(transAmountField.getText());
                 String transactionTypes = (String) transactionType.getSelectedItem();
                 Client client = new Client();
-                client.sendAction("Process Transaction");
                 client.sendTransaction(new Transaction(accountNumber, transactionAmount, transactionTypes));
                 //display this data on screen
-                displayInfo(client.receiveResponse());
+                if(client.receiveResponse() != null){
+                    displayInfo(client.receiveResponse());
+                }else{
+                    JOptionPane.showMessageDialog( null, "Transaction account does not exist.", "Transaction Status",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+
             }
         }
 
@@ -142,10 +147,9 @@ public class MainScreen extends JFrame implements ActionListener {
             Transaction transaction = new Transaction();
             transaction.setTransactionType("EXIT");
             // Send Transaction object to server and close connections
-            client.sendAction("Process Transaction");
             client.sendTransaction(transaction);
-            client.sendAction("exit");
             client.closeConnection();
+            System.exit(0);
         }
 
         if(e.getSource() == finishButton){

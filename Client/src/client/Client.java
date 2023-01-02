@@ -2,6 +2,7 @@ package client;
 
 import model.Transaction;
 
+import javax.swing.*;
 import java.io.*;
 import java.net.Socket;
 
@@ -47,14 +48,6 @@ public class Client {
         }
     }
 
-    public void sendAction(String action) {
-        try {
-            objOs.writeObject(action);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
     public void sendTransaction(Transaction transaction) {
         try {
             objOs.writeObject(transaction);
@@ -66,7 +59,14 @@ public class Client {
     public Transaction receiveResponse() {
         Transaction transaction = null;
         try {
-            transaction = (Transaction) objIs.readObject();
+            while (true) {
+                transaction = (Transaction) objIs.readObject();
+                if (transaction == null) {
+                    JOptionPane.showMessageDialog(null, "Transaction account could not be found", "Transaction Status",
+                            JOptionPane.ERROR_MESSAGE);
+                    return null;
+                }
+            }
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }

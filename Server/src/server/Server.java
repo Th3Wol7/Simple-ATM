@@ -21,10 +21,17 @@ public class Server {
     private ObjectOutputStream outStream = null;
     private ObjectInputStream inStream = null;
     private static Connection connection = null;
-    private PreparedStatement stmt;
+    private Statement stmt;
+    private ResultSet result;
 
     //Default constructor
     public Server() {
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (ClassNotFoundException | IllegalAccessException | UnsupportedLookAndFeelException |
+                 InstantiationException e) {
+            e.printStackTrace();
+        }
         this.createConnection();
         this.waitForRequest();
     }
@@ -44,7 +51,7 @@ public class Server {
 
     public static Connection getDatabaseConnection() {
         try {
-            String url = "jdbc:mysql://localhost:3306/labtest2bank";
+            String url = "jdbc:mysql://localhost:3306/commercialatm";
             connection = DriverManager.getConnection(url, "root", "");
 
             JOptionPane.showMessageDialog(null, "DB Connection Established",
@@ -54,22 +61,9 @@ public class Server {
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, "Could not connect to database\n" + e,
                     "Connection Failure", JOptionPane.ERROR_MESSAGE);
-        }
-        return connection;
-    }
-
-    public void saveTransaction(Transaction transaction) {
-        try {
-            String sql = "INSERT INTO transactions (account_number, transaction_type, " +
-                    "transaction_amount, transaction_time) VALUES (?, ?, ?, ?)";
-            stmt = connection.prepareStatement(sql);
-            stmt.setString(1, transaction.getAccountNumber());
-            stmt.setString(2, transaction.getTransactionType());
-            stmt.setDouble(3, transaction.getTransactionAmount());
-            stmt.executeUpdate();
-        } catch (SQLException e) {
             e.printStackTrace();
         }
+        return connection;
     }
 
     //Waiting for request from client
@@ -88,17 +82,29 @@ public class Server {
                             outStream = new ObjectOutputStream(socket.getOutputStream());
                             inStream = new ObjectInputStream(socket.getInputStream());
                             // Read the action from the input stream
-                            String action = "";
-                            action = (String) inStream.readObject();
-                            while (!action.equalsIgnoreCase("exit")) {
-                                if (action.equalsIgnoreCase("Process Transaction")) {
+                            Transaction trans = (Transaction) inStream.readObject();
+                            ;
+                            while (!trans.getTransactionType().equalsIgnoreCase("exit")) {
+                                if (trans.getTransactionType().equalsIgnoreCase("Deposit")) {
                                     // Read the Transaction object from the input stream
                                     Transaction transaction = (Transaction) inStream.readObject();
                                     // Save the transaction to the database
-                                    saveTransaction(transaction);
+                                    outStream.writeObject(deposit(transaction));
+                                }
+                                if (trans.getTransactionType().equalsIgnoreCase("Withdraw")) {
+                                    // Read the Transaction object from the input stream
+                                    Transaction transaction = (Transaction) inStream.readObject();
+                                    // Save the transaction to the database
+                                    outStream.writeObject(withdrawal(transaction));
+                                }
+                                if (trans.getTransactionType().equalsIgnoreCase("Balance Check")) {
+                                    // Read the Transaction object from the input stream
+                                    Transaction transaction = (Transaction) inStream.readObject();
+                                    // Save the transaction to the database
+                                    outStream.writeObject(withdrawal(transaction));
                                 }
                                 // Read the next action from the input stream
-                                action = (String) inStream.readObject();
+                                trans = (Transaction) inStream.readObject();
                             }
                         } catch (EOFException ex) {
                             System.out.println("Client has terminated connections with the server");
@@ -115,7 +121,7 @@ public class Server {
                                     e.printStackTrace();
                                 }
                             }
-                                                    }
+                        }
                     }
                 });
                 t.start();
@@ -128,55 +134,71 @@ public class Server {
     //This method is used to process a deposit and update the users information
     public Transaction deposit(Transaction transaction) {
         try {
-            String sql = "UPDATE accounts SET balance = balance + ?, lastTransType = ? WHERE accountNumber = ?";
-            stmt = connection.prepareStatement(sql);
-            stmt.setDouble(1, transaction.getTransactionAmount());
-            stmt.setString(2, transaction.getTransactionType());
-            stmt.setString(3, transaction.getAccountNumber());
-            stmt.executeUpdate();
-
-            // Update the user's account balance
-            double newBalance = transaction.getAccountBalance() + transaction.getTransactionAmount();
+            double newBalance = 0;
+            String query = "SELECT * FROM commercialatm.accounts WHERE acctNum = " + transaction.getAccountNumber();
+            Statement stmt = Server.getDatabaseConnection().createStatement();
+            ResultSet result = stmt.executeQuery(query);
+            if (result == null) {
+                JOptionPane.showMessageDialog(null, "Transaction with listed account number could not be found",
+                        "Transaction Status", JOptionPane.ERROR_MESSAGE);
+                return null;
+            } else if (result.next()) {
+                newBalance = result.getDouble(5) + transaction.getTransactionAmount();
+            }
             transaction.setAccountBalance(newBalance);
-            // Update the last transaction type
-            transaction.setTransactionType(transaction.getTransactionType());
-            // Update the last transaction amount
-            transaction.setTransactionAmount(transaction.getTransactionAmount());
+            //Update transaction in database
+            String updateSql = "UPDATE commercialatm.accounts SET lastTransType = '"
+                    + transaction.getTransactionType() + "', lastTransAmount ='" + transaction.getTransactionAmount()
+                    + "', balance = '" + newBalance + "' WHERE acctNum = '" + transaction.getAccountNumber() + "'";
+            stmt = Server.getDatabaseConnection().createStatement();
+            if (stmt.executeUpdate(updateSql) == 1) {
+               return transaction;
+            }else {
+                JOptionPane.showMessageDialog(null, "An error occurred while updating the database.",
+                        "Transaction Status", JOptionPane.ERROR_MESSAGE);
+            }
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return transaction;
+        return null;
     }
 
     public Transaction withdrawal(Transaction transaction) {
         try {
-            String sql = "UPDATE accounts SET balance = balance - ?, lastTransType = ?, lastTransAmount = ? WHERE account_number = ?";
-            stmt = connection.prepareStatement(sql);
-            stmt.setDouble(1, transaction.getTransactionAmount());
-            stmt.setString(2, transaction.getTransactionType());
-            stmt.setDouble(3, transaction.getTransactionAmount());
-            stmt.setString(4, transaction.getAccountNumber());
-            stmt.executeUpdate();
-
-            // Update the balance in the Transaction object
-            transaction.setAccountBalance(transaction.getAccountBalance() - transaction.getTransactionAmount());
-
-            // Set the lastTransType and lastTransAmount in the Transaction object
-            transaction.setTransactionType(transaction.getTransactionType());
-            transaction.setTransactionAmount(transaction.getTransactionAmount());
-
-            // Return the updated Transaction object
-            return transaction;
+            String query = "SELECT * FROM commercialatm.accounts WHERE acctNum = " + transaction.getAccountNumber();
+            double newBalance = 0;
+            stmt = getDatabaseConnection().createStatement();
+            result = stmt.executeQuery(query);
+            if (result.next()) {
+                newBalance = result.getDouble(5) - transaction.getTransactionAmount();
+                if (newBalance < 0) {
+                    JOptionPane.showMessageDialog(null, "You cannot withdraw more than your balance", "Insufficient Funds",
+                            JOptionPane.ERROR_MESSAGE);
+                    return null;
+                }
+            }
+            transaction.setAccountBalance(newBalance);
+            String updateSql = "UPDATE commercialatm.accounts SET lastTransType = '"
+                    + transaction.getTransactionType() + "', lastTransAmount ='"
+                    + transaction.getTransactionAmount() + "', balance = '" + newBalance + "' WHERE acctNum = '"
+                    + transaction.getAccountNumber() + "'";
+            stmt = getDatabaseConnection().createStatement();
+            if (stmt.executeUpdate(updateSql) == 1) {
+                // Return the updated Transaction object
+                return transaction;
+            }
         } catch (SQLException e) {
             e.printStackTrace();
             return null;
         }
+        return transaction;
     }
 
     public Transaction balanceCheck(Transaction transaction) {
         try {
-            String sql = "SELECT balance, acct_type FROM accounts WHERE account_number = ?";
-            stmt = connection.prepareStatement(sql);
+            String sql = "SELECT balance, acctType FROM commercialatm.accounts WHERE acctnum = ?";
+            PreparedStatement stmt = connection.prepareStatement(sql);
             stmt.setString(1, transaction.getAccountNumber());
             ResultSet result = stmt.executeQuery();
             if (result.next()) {
@@ -199,6 +221,20 @@ public class Server {
             } else {
                 return null;
             }
+
+            /*////////////////
+            Transaction updatedTransaction = new Transaction();
+            String query = "SELECT * FROM labtest2bank.labtest2accounts WHERE acctNum = " + transaction.getAccountNumber();
+            try {
+                stmt = LabTest2Server.getDatabaseConnection().createStatement();
+                result = stmt.executeQuery(query);
+                if (result.next()) {
+                    transaction.setTransactionType(result.getString(3));
+                    transaction.setTransactionAmount(4);
+                    transaction.setAccountBalance(result.getDouble(5));
+                    updatedTransaction = transaction;
+                }
+            */////////////////
         } catch (SQLException e) {
             e.printStackTrace();
             return null;
