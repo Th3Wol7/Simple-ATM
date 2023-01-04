@@ -31,8 +31,7 @@ public class MainScreen extends JFrame implements ActionListener {
     }
 
     public void initializeComponents() {
-        new JFrame("My Awesome ATM");
-        this.setLayout(null);
+        new JFrame();
 
         String[] transaction = {"Deposit", "Withdrawl", "Balance Check"};
         mainPanel = new JPanel();
@@ -86,11 +85,11 @@ public class MainScreen extends JFrame implements ActionListener {
 
     //Setting window properties
     public void setWindowProperties() {
-        setLayout(null);
+        this.setTitle("My Awesome ATM");
+        this.setLayout(null);
         add(mainPanel);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(800, 400);
-        setLayout(null);
+        setSize(700, 400);
         setVisible(true);
         setLocationRelativeTo(null);
         setResizable(false);

@@ -83,7 +83,6 @@ public class Server {
                             inStream = new ObjectInputStream(socket.getInputStream());
                             // Read the action from the input stream
                             Transaction trans = (Transaction) inStream.readObject();
-                            ;
                             while (!trans.getTransactionType().equalsIgnoreCase("exit")) {
                                 if (trans.getTransactionType().equalsIgnoreCase("Deposit")) {
                                     // Read the Transaction object from the input stream
