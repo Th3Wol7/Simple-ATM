@@ -9,14 +9,15 @@ The ATM allows users to perform the following actions:
 
 ### Architecture
 The ATM system consists of two main components: a server and a client.
-
+#### Server
 The server is responsible for handling all ATM transactions and interacting with the MySQL database. It exposes a set of APIs for the client to use.
 The `Server` class creates a connection to the MySQL database and starts the server socket to listen for requests from clients. It contains the methods for:
-Creating a connection to the MySQL database using JDBC. <br/>
-Waiting for a request from a client and starts a new thread to handle the request. <br/>
-Handling deposit and withdrawal requests from a client by updating the account balance in the database and returning the updated transaction object to the client.
-Handling balance check requests from a client by retrieving the account balance from the database and returning the updated transaction object to the client.
+- Creating a connection to the MySQL database using JDBC. 
+- Waiting for a request from a client and starts a new thread to handle the request.
+- Handling deposit and withdrawal requests from a client by updating the account balance in the database and returning the updated transaction object to the client.
+- Handling balance check requests from a client by retrieving the account balance from the database and returning the updated transaction object to the client.
 
+#### Client
 The client is a graphical user interface that allows users to interact with the ATM by making requests to the server. The client is implemented using the `Client` class, which handles the communication with the server using `Socket` and `ObjectStream` objects. The `MainScreen` class is responsible for the layout and functionality of the client interface, including the confirmation and completion of transactions.
 
 ### Dependenicies
