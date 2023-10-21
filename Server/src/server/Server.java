@@ -16,11 +16,11 @@ import java.util.Date;
 public class Server {
     private static final double SIMPLEINTERESTRATE = 0.15;//NTS: CHECK THIS
     private static final double COMPOUNDINTERESTRATE = 0.2;
+    private static Connection connection = null;
     private ServerSocket serverSocket;
     private Socket socket;
     private ObjectOutputStream outStream = null;
     private ObjectInputStream inStream = null;
-    private static Connection connection = null;
     private Statement stmt;
     private ResultSet result;
 
@@ -34,19 +34,6 @@ public class Server {
         }
         this.createConnection();
         this.waitForRequest();
-    }
-
-    private void createConnection() {
-        try {
-            serverSocket = new ServerSocket(8888);
-            if (serverSocket.equals(null)) {
-                System.err.println("ServerSocket could not be started");
-            }
-            System.out.println("Server is running....\t\tLocalTime: " + new Date());
-        } catch (IOException e) {
-            e.printStackTrace();
-
-        }
     }
 
     public static Connection getDatabaseConnection() {
@@ -66,15 +53,28 @@ public class Server {
         return connection;
     }
 
+    private void createConnection() {
+        try {
+            serverSocket = new ServerSocket(8888);
+            if (serverSocket.equals(null)) {
+                System.err.println("ServerSocket could not be started");
+            }
+            System.out.println("Server is running....\t\tLocalTime: " + new Date());
+        } catch (IOException e) {
+            e.printStackTrace();
+
+        }
+    }
+
     //Waiting for request from client
     private void waitForRequest() {
-
         getDatabaseConnection();
         System.out.println("Server started...waiting for clients");
         try {
             while (true) {
                 socket = serverSocket.accept();
                 // Start a new thread to handle the request
+
                 Thread t = new Thread(new Runnable() {
                     @Override
                     public void run() {
@@ -85,22 +85,16 @@ public class Server {
                             Transaction trans = (Transaction) inStream.readObject();
                             while (!trans.getTransactionType().equalsIgnoreCase("exit")) {
                                 if (trans.getTransactionType().equalsIgnoreCase("Deposit")) {
-                                    // Read the Transaction object from the input stream
-                                    Transaction transaction = (Transaction) inStream.readObject();
-                                    // Save the transaction to the database
-                                    outStream.writeObject(deposit(transaction));
+                                    Transaction transaction = deposit(trans);
+                                    outStream.writeObject(transaction);
                                 }
                                 if (trans.getTransactionType().equalsIgnoreCase("Withdraw")) {
-                                    // Read the Transaction object from the input stream
-                                    Transaction transaction = (Transaction) inStream.readObject();
-                                    // Save the transaction to the database
-                                    outStream.writeObject(withdrawal(transaction));
+                                    Transaction transaction = withdrawal(trans);
+                                    outStream.writeObject(transaction);
                                 }
                                 if (trans.getTransactionType().equalsIgnoreCase("Balance Check")) {
-                                    // Read the Transaction object from the input stream
-                                    Transaction transaction = (Transaction) inStream.readObject();
-                                    // Save the transaction to the database
-                                    outStream.writeObject(withdrawal(transaction));
+                                    Transaction transaction = balanceCheck(trans);
+                                    outStream.writeObject(transaction);
                                 }
                                 // Read the next action from the input stream
                                 trans = (Transaction) inStream.readObject();
@@ -151,9 +145,9 @@ public class Server {
                     + "', balance = '" + newBalance + "' WHERE acctNum = '" + transaction.getAccountNumber() + "'";
             stmt = Server.getDatabaseConnection().createStatement();
             if (stmt.executeUpdate(updateSql) == 1) {
-               return transaction;
-            }else {
-                JOptionPane.showMessageDialog(null, "An error occurred while updating the database.",
+                return transaction;
+            } else {
+                JOptionPane.showMessageDialog(null, "An error occurred while updating the database. Invalid Account!",
                         "Transaction Status", JOptionPane.ERROR_MESSAGE);
             }
 

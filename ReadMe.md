@@ -1,6 +1,7 @@
 # Simple Client-Server ATM
 This is a simple ATM system implemented in Java using a client-server design and MySQL for storing user and transaction data.
-
+This project is to demonstrate my knowledge on connecting a java application to a
+SQL database, multithreading and client server designs.
 ### Features
 The ATM allows users to perform the following actions:
 - Check their balance

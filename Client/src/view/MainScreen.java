@@ -130,11 +130,11 @@ public class MainScreen extends JFrame implements ActionListener {
                 String transactionTypes = (String) transactionType.getSelectedItem();
                 Client client = new Client();
                 client.sendTransaction(new Transaction(accountNumber, transactionAmount, transactionTypes));
-                //display this data on screen
-                if(client.receiveResponse() != null){
+
+                if (client.receiveResponse() != null) {
                     displayInfo(client.receiveResponse());
-                }else{
-                    JOptionPane.showMessageDialog( null, "Transaction account does not exist.", "Transaction Status",
+                } else {
+                    JOptionPane.showMessageDialog(null, "Transaction account does not exist.", "Transaction Status",
                             JOptionPane.ERROR_MESSAGE);
                 }
 
@@ -151,7 +151,7 @@ public class MainScreen extends JFrame implements ActionListener {
             System.exit(0);
         }
 
-        if(e.getSource() == finishButton){
+        if (e.getSource() == finishButton) {
             // Reset ATM screen when finishButton is clicked
             accNumField.setText("");
             transAmountField.setText("");

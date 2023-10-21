@@ -3,7 +3,9 @@ package client;
 import model.Transaction;
 
 import javax.swing.*;
-import java.io.*;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.Socket;
 
 public class Client {
@@ -61,16 +63,17 @@ public class Client {
         try {
             while (true) {
                 transaction = (Transaction) objIs.readObject();
-                if (transaction == null) {
-                    JOptionPane.showMessageDialog(null, "Transaction account could not be found", "Transaction Status",
-                            JOptionPane.ERROR_MESSAGE);
-                    return null;
+                if (transaction != null) {
+                    return transaction;
                 }
             }
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
-        return transaction;
+        JOptionPane.showMessageDialog(null, "Transaction account could not be found", "Transaction Status",
+                JOptionPane.ERROR_MESSAGE);
+        System.out.println("Transaction recieved was null");
+        return null;
     }
 
 }
